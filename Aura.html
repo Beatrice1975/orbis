@@ -128,6 +128,110 @@
   }
 
   draw();
+
+  // ===== AUDIO =====
+  let audioCtx = null;
+  let masterGain = null;
+  let isPlaying = false;
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.15;
+    masterGain.connect(audioCtx.destination);
+    isPlaying = true;
+    playAuraDrone();
+    playAuraChimes();
+  }
+
+  // Drone etereo - 3 oscillatori con LFO morbidi
+  function playAuraDrone() {
+    const freqs = [110, 164.81, 196.00]; // A2, E3, G3 - accordo di A minore aperto
+    freqs.forEach((f, i) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      const lfo = audioCtx.createOscillator();
+      const lfoGain = audioCtx.createGain();
+
+      osc.type = i === 0 ? 'sine' : 'triangle';
+      osc.frequency.value = f;
+
+      lfo.frequency.value = 0.1 + i * 0.07;
+      lfoGain.gain.value = 2 + i;
+
+      lfo.connect(lfoGain);
+      lfoGain.connect(osc.frequency);
+
+      gain.gain.value = 0;
+      gain.gain.linearRampToValueAtTime(0.08 / freqs.length, audioCtx.currentTime + 2);
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+
+      osc.start();
+      lfo.start();
+    });
+  }
+
+  // Chimes cristallini che suonano ogni tanto
+  function playAuraChimes() {
+    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C5, E5, G5, C6, E6
+    function playChime() {
+      if (!isPlaying) return;
+      const freq = notes[Math.floor(Math.random() * notes.length)];
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+
+      gain.gain.setValueAtTime(0, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.04, audioCtx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2 + Math.random() * 2);
+
+      osc.connect(gain);
+      gain.connect(masterGain);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 4);
+
+      setTimeout(playChime, 1500 + Math.random() * 3500);
+    }
+    setTimeout(playChime, 2000);
+  }
+
+  // Click anywhere to start audio (browser policy requires user interaction)
+  function startAudio() {
+    if (!audioCtx) {
+      initAudio();
+    } else if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+  document.addEventListener('click', startAudio, { once: true });
+  document.addEventListener('touchstart', startAudio, { once: true });
+  document.addEventListener('pointerdown', startAudio, { once: true });
+
 </script>
+
+  <!-- Audio activation overlay -->
+  <div id="audio-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.6);z-index:1000;cursor:pointer;transition:opacity 0.5s;">
+    <div style="color:#fff;font-family:sans-serif;font-size:1.2rem;letter-spacing:2px;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px;">🔊</div>
+      Tap to enable audio
+    </div>
+  </div>
+  <script>
+    (function() {
+      const overlay = document.getElementById('audio-overlay');
+      function hideOverlay() {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.style.display = 'none', 500);
+      }
+      overlay.addEventListener('click', hideOverlay);
+      overlay.addEventListener('touchstart', hideOverlay);
+    })();
+  </script>
 </body>
 </html>
