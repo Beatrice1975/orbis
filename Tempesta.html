@@ -1,275 +1,374 @@
-
-html_content = '''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Temporale dal Basso</title>
+<title>Orbis - Tempesta</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
+  html, body {
     background: #000;
     overflow: hidden;
+    width: 100vw;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    width: 100vw;
   }
-  canvas { display: block; }
+  canvas {
+    display: block;
+  }
 </style>
+<base target="_blank">
 </head>
 <body>
 <canvas id="c"></canvas>
 <script>
+
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  
+
   function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   }
   resize();
   window.addEventListener('resize', resize);
-  
+
+  const W = () => canvas.width;
+  const H = () => canvas.height;
+  const CX = () => canvas.width / 2;
+  const CY = () => canvas.height / 2;
+  const BASE_RADIUS = () => Math.min(canvas.width, canvas.height) * 0.42;
   const DURATION = 30;
-  
-  function getTime() {
-    return (performance.now() / 1000) % DURATION;
+
+  const DROPS = 50;
+  const drops = [];
+  for (let i = 0; i < DROPS; i++) {
+    drops.push({
+      angle: Math.random() * Math.PI * 2,
+      speed: 0.4 + Math.random() * 0.6,
+      length: 0.01 + Math.random() * 0.05,
+      thickness: 1.5 + Math.random() * 2.5,
+      phase: Math.random() * Math.PI * 2,
+      cycles: 5 + Math.floor(i / 3)
+    });
   }
-  
-  function seededRandom(seed) {
-    const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
-    return x - Math.floor(x);
-  }
-  
-  const RAINDROPS = 50;
-  
-  function getRaindrop(t, i) {
-    const angleSeed = i * 7.3 + 1.1;
-    const angle = seededRandom(angleSeed) * Math.PI * 2;
-    const speedSeed = i * 3.7 + 2.9;
-    const speed = 0.4 + seededRandom(speedSeed) * 0.6;
-    
-    const dropsPerDuration = 5 + Math.floor(i / 3);
-    const dropPhase = (t / DURATION) * dropsPerDuration;
-    const progress = dropPhase % 1;
-    
-    const dist = 0.05 + progress * 0.95;
-    const sizeBase = 1.5 + progress * 4.0;
-    const lengthBase = 0.01 + progress * 0.06;
-    const alpha = 0.6 + Math.sin(progress * Math.PI) * 0.35;
-    
-    // Fase di impatto: piu' lunga per vedere meglio
-    const impactProgress = Math.max(0, (progress - 0.88) / 0.12);
-    
-    return { angle, dist, progress, sizeBase, lengthBase, alpha, speed, impactProgress };
-  }
-  
-  const LIGHTNING_DATA = [
-    { time: 4.2, duration: 0.22 },
-    { time: 12.7, duration: 0.35 },
-    { time: 23.1, duration: 0.18 }
+
+  const SPLASHES = [];
+
+  const LIGHTNING = [
+    { start: 4.2, dur: 0.22 },
+    { start: 12.7, dur: 0.35 },
+    { start: 23.1, dur: 0.18 }
   ];
-  
-  function getLightning(t) {
-    for (let i = 0; i < LIGHTNING_DATA.length; i++) {
-      const lt = LIGHTNING_DATA[i].time;
-      const ld = LIGHTNING_DATA[i].duration;
-      if (t >= lt && t < lt + ld) {
-        const progress = (t - lt) / ld;
-        return Math.sin(progress * Math.PI);
+
+  const GLOWS = [
+    { start: 7, end: 11 },
+    { start: 18, end: 23 }
+  ];
+
+  function drawLightning(cx, cy, r, t) {
+    for (const bolt of LIGHTNING) {
+      if (t >= bolt.start && t < bolt.start + bolt.dur) {
+        const progress = (t - bolt.start) / bolt.dur;
+        const intensity = progress < 0.3 ? progress / 0.3 : 1 - (progress - 0.3) / 0.7;
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+
+        // Main bolt - multiple branches from center
+        const branches = 3 + Math.floor(Math.random() * 3);
+        for (let b = 0; b < branches; b++) {
+          const baseAngle = (b / branches) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+          let lx = cx;
+          let ly = cy;
+          ctx.beginPath();
+          ctx.moveTo(lx, ly);
+
+          const segments = 8 + Math.floor(Math.random() * 6);
+          for (let s = 0; s < segments; s++) {
+            const segProgress = s / segments;
+            const maxDist = r * (0.3 + segProgress * 0.7);
+            const angle = baseAngle + (Math.random() - 0.5) * 0.8;
+            lx = cx + Math.cos(angle) * maxDist;
+            ly = cy + Math.sin(angle) * maxDist;
+            ctx.lineTo(lx, ly);
+
+            // Sub-branches
+            if (Math.random() > 0.6 && s > 2) {
+              ctx.save();
+              ctx.beginPath();
+              ctx.moveTo(lx, ly);
+              const subAngle = angle + (Math.random() - 0.5) * 1.5;
+              const subDist = r * 0.15;
+              ctx.lineTo(lx + Math.cos(subAngle) * subDist, ly + Math.sin(subAngle) * subDist);
+              ctx.strokeStyle = `rgba(200, 220, 255, ${intensity * 0.6})`;
+              ctx.lineWidth = 1;
+              ctx.shadowColor = '#aaccff';
+              ctx.shadowBlur = 10 * intensity;
+              ctx.stroke();
+              ctx.restore();
+            }
+          }
+
+          ctx.strokeStyle = `rgba(240, 250, 255, ${intensity})`;
+          ctx.lineWidth = 2 + intensity * 3;
+          ctx.shadowColor = '#ffffff';
+          ctx.shadowBlur = 25 * intensity;
+          ctx.stroke();
+        }
+
+        ctx.restore();
       }
     }
-    return 0;
   }
-  
-  function getSkyGlow(t) {
-    const glows = [
-      { start: 6, end: 11 },
-      { start: 17, end: 23 }
-    ];
-    for (let i = 0; i < glows.length; i++) {
-      const g = glows[i];
-      if (t >= g.start && t < g.end) {
+
+  function drawGlow(cx, cy, r, t) {
+    for (const g of GLOWS) {
+      if (t >= g.start && t <= g.end) {
         const progress = (t - g.start) / (g.end - g.start);
-        return Math.sin(progress * Math.PI) * 0.5;
+        const intensity = Math.sin(progress * Math.PI) * 0.5;
+        const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grd.addColorStop(0, `rgba(180, 190, 210, ${intensity})`);
+        grd.addColorStop(1, 'transparent');
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
-    return 0;
   }
-  
+
   function draw() {
-    const t = getTime();
-    const w = canvas.width;
-    const h = canvas.height;
-    const cx = w / 2;
-    const cy = h / 2;
-    const baseRadius = Math.min(w, h) * 0.35;
-    const r = baseRadius;
-    
-    const lightning = getLightning(t);
-    const skyGlow = getSkyGlow(t);
-    
+    const t = (performance.now() / 1000) % DURATION;
+    const cx = CX(), cy = CY(), r = BASE_RADIUS();
+
     ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, w, h);
-    
+    ctx.fillRect(0, 0, W(), H());
+
+    // Background circle (dark storm)
+    const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    grd.addColorStop(0, '#1a2030');
+    grd.addColorStop(1, '#0a0f1a');
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Clip to circle
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.clip();
-    
-    if (skyGlow > 0) {
-      const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      glowGrad.addColorStop(0, `rgba(220, 225, 235, ${skyGlow * 0.9})`);
-      glowGrad.addColorStop(0.5, `rgba(190, 195, 205, ${skyGlow * 0.5})`);
-      glowGrad.addColorStop(1, `rgba(160, 165, 175, ${skyGlow * 0.2})`);
-      ctx.fillStyle = glowGrad;
-      ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-    }
-    
-    const stormGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-    const stormLightness = 3 + lightning * 40 + skyGlow * 35;
-    stormGrad.addColorStop(0, `hsla(220, 50%, ${stormLightness}%, 0.25)`);
-    stormGrad.addColorStop(0.5, `hsla(230, 60%, ${stormLightness * 0.7}%, 0.15)`);
-    stormGrad.addColorStop(1, 'hsla(240, 80%, 2%, 0)');
-    
-    ctx.fillStyle = stormGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.fill();
-    
-    if (lightning > 0) {
-      ctx.save();
-      ctx.globalAlpha = lightning * 0.95;
-      const lightningSeed = Math.floor(t);
-      for (let b = 0; b < 4; b++) {
+
+    // Glow
+    drawGlow(cx, cy, r, t);
+
+    // Rain drops
+    for (const d of drops) {
+      const cycleT = (t / DURATION) * d.cycles + d.phase / (Math.PI * 2);
+      const progress = cycleT % 1;
+      const dist = progress * r * 0.9;
+      const px = cx + Math.cos(d.angle) * dist;
+      const py = cy + Math.sin(d.angle) * dist;
+      const size = 1.5 + progress * 2.5;
+
+      ctx.strokeStyle = `rgba(200, 220, 255, ${0.3 + progress * 0.7})`;
+      ctx.lineWidth = d.thickness;
+      ctx.shadowColor = '#aaccff';
+      ctx.shadowBlur = 8;
+      ctx.beginPath();
+      const backDist = Math.max(0, dist - d.length * r);
+      ctx.moveTo(cx + Math.cos(d.angle) * backDist, cy + Math.sin(d.angle) * backDist);
+      ctx.lineTo(px, py);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Impact splash
+      if (progress > 0.88 && progress < 0.98) {
+        const splashProgress = (progress - 0.88) / 0.1;
+        const splashR = splashProgress * r * 0.08;
+        ctx.fillStyle = `rgba(200, 230, 255, ${0.6 * (1 - splashProgress)})`;
         ctx.beginPath();
-        let lx = cx + (seededRandom(lightningSeed + b * 13) - 0.5) * r * 0.8;
-        let ly = cy + (seededRandom(lightningSeed + b * 13 + 1) - 0.5) * r * 0.8;
-        ctx.moveTo(lx, ly);
-        for (let s = 0; s < 6; s++) {
-          lx += (seededRandom(lightningSeed + b * 13 + s * 7) - 0.5) * r * 0.3;
-          ly += (seededRandom(lightningSeed + b * 13 + s * 7 + 3) - 0.5) * r * 0.3;
-          ctx.lineTo(lx, ly);
-        }
-        ctx.strokeStyle = `hsla(195, 100%, ${90 + lightning * 10}%, ${lightning})`;
-        ctx.lineWidth = 1 + lightning * 5;
-        ctx.shadowColor = '#fff';
-        ctx.shadowBlur = 30 * lightning;
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-    
-    for (let i = 0; i < RAINDROPS; i++) {
-      const drop = getRaindrop(t, i);
-      const dist = drop.dist * r;
-      const px = cx + Math.cos(drop.angle) * dist;
-      const py = cy + Math.sin(drop.angle) * dist;
-      const dropLen = drop.lengthBase * r;
-      const dx = -Math.cos(drop.angle) * dropLen;
-      const dy = -Math.sin(drop.angle) * dropLen;
-      const size = drop.sizeBase;
-      
-      // --- GOCCIA CHE CADE ---
-      if (drop.progress < 0.95) {
-        ctx.save();
-        ctx.globalAlpha = drop.alpha;
-        const dropLightness = 92 + lightning * 8 + skyGlow * 8;
-        const dropSat = 20 + lightning * 15;
-        ctx.strokeStyle = `hsla(205, ${dropSat}%, ${dropLightness}%, ${drop.alpha})`;
-        ctx.lineWidth = size;
-        ctx.lineCap = 'round';
-        ctx.shadowColor = `hsla(200, 100%, 98%, ${0.6 + lightning * 0.4})`;
-        ctx.shadowBlur = size * 4;
-        ctx.beginPath();
-        ctx.moveTo(px, py);
-        ctx.lineTo(px + dx, py + dy);
-        ctx.stroke();
-        ctx.restore();
-      }
-      
-      // --- IMPATTO goccia ---
-      if (drop.impactProgress > 0) {
-        const impactAlpha = (1 - drop.impactProgress) * drop.alpha;
-        
-        // Cerchio di impatto che si espande MOLTO di piu'
-        const impactSize = size * (1 + drop.impactProgress * 5);
-        
-        ctx.save();
-        ctx.globalAlpha = impactAlpha * 0.9;
-        ctx.strokeStyle = `hsla(205, 40%, 90%, ${impactAlpha})`;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = `hsla(200, 100%, 95%, 0.8)`;
-        ctx.shadowBlur = impactSize * 3;
-        ctx.beginPath();
-        ctx.arc(px, py, impactSize, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-        
-        // Cerchio interno
-        ctx.save();
-        ctx.globalAlpha = impactAlpha * 0.4;
-        ctx.fillStyle = `hsla(205, 30%, 95%, ${impactAlpha * 0.5})`;
-        ctx.beginPath();
-        ctx.arc(px, py, impactSize * 0.5, 0, Math.PI * 2);
+        ctx.arc(px, py, splashR, 0, Math.PI * 2);
         ctx.fill();
-        ctx.restore();
-        
-        // Schizzi pioggia
-        const splashCount = 6;
-        for (let s = 0; s < splashCount; s++) {
-          const splashAngle = drop.angle + (seededRandom(i * 13 + s * 7) - 0.5) * Math.PI * 1.2;
-          const splashDist = drop.impactProgress * size * 4;
-          const sx = px + Math.cos(splashAngle) * splashDist;
-          const sy = py + Math.sin(splashAngle) * splashDist;
-          const splashSize = size * 0.6 * (1 - drop.impactProgress);
-          
-          ctx.save();
-          ctx.globalAlpha = impactAlpha * 0.9;
-          ctx.fillStyle = `hsla(205, 25%, 92%, ${impactAlpha})`;
-          ctx.shadowColor = `hsla(200, 100%, 95%, 0.7)`;
-          ctx.shadowBlur = splashSize * 3;
+        for (let s = 0; s < 6; s++) {
+          const sa = d.angle + (Math.random() - 0.5) * 1.5;
+          const sd = splashProgress * r * 0.15;
+          ctx.fillStyle = `rgba(200, 230, 255, ${0.5 * (1 - splashProgress)})`;
           ctx.beginPath();
-          ctx.arc(sx, sy, splashSize, 0, Math.PI * 2);
+          ctx.arc(px + Math.cos(sa) * sd, py + Math.sin(sa) * sd, 1.5, 0, Math.PI * 2);
           ctx.fill();
-          ctx.restore();
         }
       }
     }
-    
-    const cloudGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.5);
-    const cloudLightness = 5 + lightning * 30 + skyGlow * 25;
-    cloudGrad.addColorStop(0, `hsla(230, 30%, ${cloudLightness}%, 0.35)`);
-    cloudGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = cloudGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, r * 0.5, 0, Math.PI * 2);
-    ctx.fill();
-    
+
+    // Lightning
+    drawLightning(cx, cy, r, t);
+
     ctx.restore();
-    
-    const borderLightness = 8 + lightning * 50 + skyGlow * 25;
-    ctx.save();
-    ctx.lineWidth = 3;
-    ctx.shadowBlur = 10 + lightning * 30;
-    ctx.strokeStyle = `hsla(220, 50%, ${borderLightness}%, 0.8)`;
-    ctx.shadowColor = `hsla(200, 100%, ${borderLightness}%, ${0.3 + lightning * 0.7})`;
+
+    // Border - white during lightning
+    const isLightning = LIGHTNING.some(b => t >= b.start && t < b.start + b.dur);
+    const glow = isLightning ? 25 : 5;
+    ctx.shadowColor = isLightning ? '#ffffff' : '#6688cc';
+    ctx.shadowBlur = glow;
+    ctx.strokeStyle = isLightning ? `rgba(255, 255, 255, ${0.5 + 0.5 * Math.sin(t * 20)})` : '#4466aa';
+    ctx.lineWidth = isLightning ? 4 : 3;
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.restore();
-    
+    ctx.shadowBlur = 0;
+
     requestAnimationFrame(draw);
   }
-  
+
   draw();
+
+  // ===== AUDIO =====
+  let audioCtx = null;
+  let masterGain = null;
+  let isPlaying = false;
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.3;
+    masterGain.connect(audioCtx.destination);
+    isPlaying = true;
+    startRainNoise();
+    scheduleThunder();
+  }
+
+  // Rumore bianco filtrato per pioggia
+  function createRainNoise() {
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.5;
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+
+    // Filtro passa-basso per morbidezza
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;
+    filter.Q.value = 0.5;
+
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.1;
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+    noise.start();
+    return { noise, filter, gain };
+  }
+
+  let rainRef = null;
+  function startRainNoise() {
+    rainRef = createRainNoise();
+  }
+
+  // Tuono: rumore rosa con filtro passa-basso modulato + riverbero
+  function playThunder(intensity, durMult = 1.0) {
+    const duration = (1.5 + Math.random() * 2) * durMult;
+
+    // Buffer rumore
+    const bufferSize = audioCtx.sampleRate * duration;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      // Rumore rosa approssimato (filtro passa-basso su rumore bianco)
+      const white = Math.random() * 2 - 1;
+      lastOut = (lastOut + (0.02 * white)) / 1.02;
+      data[i] = lastOut * 3; // amplifica
+    }
+
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    // Filtro che si apre e chiude
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(100, audioCtx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+    filter.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + duration);
+
+    // Envelope: attacco rapido, decay lungo
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.12 * intensity, audioCtx.currentTime + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+    // Riverbero semplice (delay)
+    const delay = audioCtx.createDelay();
+    delay.delayTime.value = 0.3;
+    const delayGain = audioCtx.createGain();
+    delayGain.gain.value = 0.3;
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+
+    // Riverbero parallelo
+    gain.connect(delay);
+    delay.connect(delayGain);
+    delayGain.connect(masterGain);
+    delayGain.connect(delay); // feedback
+
+    noise.start();
+    noise.stop(audioCtx.currentTime + duration + 0.5);
+  }
+
+  // Tuono
+  function scheduleThunder() {
+    const bolt = LIGHTNING[0]; // solo il primo lampo
+    const thunderTime = Math.max(0, (bolt.start - 0.3) * 1000); // 300ms prima
+    setTimeout(() => {
+      if (isPlaying) playThunder(1.0, 1.5); // intensità piena, durata +50%
+    }, thunderTime);
+    // Rischedula ogni loop
+    setTimeout(scheduleThunder, DURATION * 1000);
+  }
+
+  // Click anywhere to start audio
+  function startAudio() {
+    if (!audioCtx) {
+      initAudio();
+    } else if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+  document.addEventListener('click', startAudio, { once: true });
+  document.addEventListener('touchstart', startAudio, { once: true });
+  document.addEventListener('pointerdown', startAudio, { once: true });
+
 </script>
+
+  <!-- Audio activation overlay -->
+  <div id="audio-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.6);z-index:1000;cursor:pointer;transition:opacity 0.5s;">
+    <div style="color:#fff;font-family:sans-serif;font-size:1.2rem;letter-spacing:2px;text-align:center;">
+      <div style="font-size:2rem;margin-bottom:10px;">🔊</div>
+      Tap to enable audio
+    </div>
+  </div>
+  <script>
+    (function() {
+      const overlay = document.getElementById('audio-overlay');
+      function hideOverlay() {
+        overlay.style.opacity = '0';
+        setTimeout(() => overlay.style.display = 'none', 500);
+      }
+      overlay.addEventListener('click', hideOverlay);
+      overlay.addEventListener('touchstart', hideOverlay);
+    })();
+  </script>
 </body>
-</html>'''
-
-with open('/mnt/agents/output/temporale_dal_basso.html', 'w', encoding='utf-8') as f:
-    f.write(html_content)
-
-
+</html>
