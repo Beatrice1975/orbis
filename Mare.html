@@ -1,0 +1,379 @@
+
+html_content = '''<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Orbis - Mare</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  
+  const DURATION = 30;
+  let startTime = null;
+  
+  function getTime() {
+    if (!startTime) startTime = performance.now();
+    return ((performance.now() - startTime) / 1000) % DURATION;
+  }
+  
+  // ========== PALETTE COLORI MARE (4 stati: turchese -> azzurro -> blu -> ghiaccio -> turchese) ==========
+  const palettes = [
+    { name: 'turchese',   r0: 0,   g0: 180, b0: 200, r1: 0,   g1: 130, b1: 170, r2: 0,   g2: 50,  b2: 100 },
+    { name: 'azzurro',    r0: 0,   g0: 160, b0: 220, r1: 0,   g1: 120, b1: 200, r2: 0,   g2: 60,  b2: 150 },
+    { name: 'blu',        r0: 0,   g0: 100, b0: 200, r1: 0,   g1: 70,  b1: 180, r2: 0,   g2: 30,  b2: 120 },
+    { name: 'ghiaccio',   r0: 180, g0: 220, b0: 255, r1: 120, g1: 180, b1: 240, r2: 40,  g2: 100, b2: 180 },
+  ];
+  
+  function getPalette(t) {
+    const cycle = (t / DURATION) * 4;
+    const idx = Math.floor(cycle) % 4;
+    const nextIdx = (idx + 1) % 4;
+    const progress = cycle - Math.floor(cycle);
+    const smooth = 0.5 - 0.5 * Math.cos(progress * Math.PI);
+    
+    const p1 = palettes[idx];
+    const p2 = palettes[nextIdx];
+    
+    return {
+      r0: p1.r0 + (p2.r0 - p1.r0) * smooth,
+      g0: p1.g0 + (p2.g0 - p1.g0) * smooth,
+      b0: p1.b0 + (p2.b0 - p1.b0) * smooth,
+      r1: p1.r1 + (p2.r1 - p1.r1) * smooth,
+      g1: p1.g1 + (p2.g1 - p1.g1) * smooth,
+      b1: p1.b1 + (p2.b1 - p1.b1) * smooth,
+      r2: p1.r2 + (p2.r2 - p1.r2) * smooth,
+      g2: p1.g2 + (p2.g2 - p1.g2) * smooth,
+      b2: p1.b2 + (p2.b2 - p1.b2) * smooth,
+    };
+  }
+  
+  // ========== ONDE CONCENTRICHE (loop perfetto) ==========
+  const waveCount = 8;
+  const waves = [];
+  for (let i = 0; i < waveCount; i++) {
+    const cycles = 1 + Math.floor(Math.random() * 3);
+    waves.push({
+      id: i,
+      baseRadius: 0.08 + i * 0.11,
+      cycles: cycles,
+      phase: Math.random() * Math.PI * 2,
+      amplitude: 3 + Math.random() * 5,
+      frequency: 6 + Math.floor(Math.random() * 8),
+      colorPhase: Math.random() * Math.PI * 2,
+      alpha: 0.15 + Math.random() * 0.25,
+      lineWidth: 1 + Math.random() * 2.5,
+    });
+  }
+  
+  // ========== RIFLESSI DI LUCE (glints) ==========
+  const glintCount = 40;
+  const glints = [];
+  for (let i = 0; i < glintCount; i++) {
+    const r = Math.pow(Math.random(), 0.6);
+    const angle = Math.random() * Math.PI * 2;
+    // Cicli interi per drift, life e flicker
+    const driftCycles = 1 + Math.floor(Math.random() * 2);
+    const lifeCycles = 1 + Math.floor(Math.random() * 3);
+    const flickerCycles = 2 + Math.floor(Math.random() * 4);
+    glints.push({
+      id: i,
+      baseR: r,
+      baseAngle: angle,
+      size: 2 + Math.random() * 6,
+      brightness: 0.6 + Math.random() * 0.4,
+      flickerCycles: flickerCycles,
+      flickerPhase: Math.random() * Math.PI * 2,
+      driftCycles: driftCycles,
+      driftPhase: Math.random() * Math.PI * 2,
+      lifeCycles: lifeCycles,
+      lifePhase: Math.random() * Math.PI * 2,
+    });
+  }
+  
+  // ========== SCHIUMA ==========
+  const foamCount = 60;
+  const foams = [];
+  for (let i = 0; i < foamCount; i++) {
+    const r = 0.1 + Math.random() * 0.85;
+    const angle = Math.random() * Math.PI * 2;
+    const wobbleCycles = 1 + Math.floor(Math.random() * 2);
+    const lifeCycles = 1 + Math.floor(Math.random() * 3);
+    foams.push({
+      id: i,
+      baseR: r,
+      baseAngle: angle,
+      size: 1 + Math.random() * 4,
+      wobbleCycles: wobbleCycles,
+      phase: Math.random() * Math.PI * 2,
+      wobblePhase: Math.random() * Math.PI * 2,
+      lifeCycles: lifeCycles,
+      lifePhase: Math.random() * Math.PI * 2,
+      alpha: 0.2 + Math.random() * 0.5,
+    });
+  }
+  
+  // ========== PICCOLE ONDE / CREPITIO ==========
+  const rippleCount = 30;
+  const ripples = [];
+  for (let i = 0; i < rippleCount; i++) {
+    const r = Math.random() * 0.9;
+    const angle = Math.random() * Math.PI * 2;
+    const cycles = 1 + Math.floor(Math.random() * 4);
+    ripples.push({
+      id: i,
+      baseR: r,
+      baseAngle: angle,
+      size: 1 + Math.random() * 3,
+      cycles: cycles,
+      phase: Math.random() * Math.PI * 2,
+      alpha: 0.1 + Math.random() * 0.3,
+    });
+  }
+  
+  function draw() {
+    const t = getTime();
+    const w = canvas.width;
+    const h = canvas.height;
+    const cx = w / 2;
+    const cy = h / 2;
+    const R = Math.min(w, h) * 0.42;
+    const pal = getPalette(t);
+    
+    // Sfondo nero
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.clip();
+    
+    // ========== SFONDO MARE ==========
+    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, R);
+    bg.addColorStop(0, `rgba(${Math.floor(pal.r0)}, ${Math.floor(pal.g0)}, ${Math.floor(pal.b0)}, 0.95)`);
+    bg.addColorStop(0.25, `rgba(${Math.floor(pal.r0*0.9+pal.r1*0.1)}, ${Math.floor(pal.g0*0.9+pal.g1*0.1)}, ${Math.floor(pal.b0*0.9+pal.b1*0.1)}, 0.9)`);
+    bg.addColorStop(0.5, `rgba(${Math.floor(pal.r1)}, ${Math.floor(pal.g1)}, ${Math.floor(pal.b1)}, 0.85)`);
+    bg.addColorStop(0.75, `rgba(${Math.floor(pal.r1*0.7+pal.r2*0.3)}, ${Math.floor(pal.g1*0.7+pal.g2*0.3)}, ${Math.floor(pal.b1*0.7+pal.b2*0.3)}, 0.8)`);
+    bg.addColorStop(1, `rgba(${Math.floor(pal.r2)}, ${Math.floor(pal.g2)}, ${Math.floor(pal.b2)}, 0.9)`);
+    ctx.fillStyle = bg;
+    ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
+    
+    // ========== ONDE CONCENTRICHE ==========
+    waves.forEach(wave => {
+      const wavePhase = (t / DURATION) * wave.cycles * Math.PI * 2 + wave.phase;
+      const pulse = Math.sin(wavePhase);
+      const currentRadius = wave.baseRadius * R + pulse * wave.amplitude;
+      
+      if (currentRadius < 5 || currentRadius > R - 5) return;
+      
+      const depth = wave.baseRadius;
+      const flicker = 0.85 + 0.15 * Math.sin(t * 2 + wave.colorPhase);
+      
+      let or, og, ob, oa;
+      if (depth < 0.3) {
+        or = pal.r0; og = pal.g0; ob = pal.b0; oa = 0.9 * flicker;
+      } else if (depth < 0.7) {
+        const d = (depth - 0.3) / 0.4;
+        or = pal.r0*(1-d) + pal.r1*d;
+        og = pal.g0*(1-d) + pal.g1*d;
+        ob = pal.b0*(1-d) + pal.b1*d;
+        oa = 0.8 * flicker;
+      } else {
+        const d = (depth - 0.7) / 0.3;
+        or = pal.r1*(1-d) + pal.r2*d;
+        og = pal.g1*(1-d) + pal.g2*d;
+        ob = pal.b1*(1-d) + pal.b2*d;
+        oa = 0.7 * flicker;
+      }
+      
+      const alpha = wave.alpha * (0.7 + 0.3 * pulse);
+      
+      ctx.strokeStyle = `rgba(${Math.floor(or)}, ${Math.floor(og)}, ${Math.floor(ob)}, ${alpha})`;
+      ctx.lineWidth = wave.lineWidth;
+      ctx.beginPath();
+      
+      const segments = 120;
+      for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        const wobble = Math.sin(angle * wave.frequency + wavePhase * 2) * 2;
+        const r = currentRadius + wobble;
+        const x = cx + Math.cos(angle) * r;
+        const y = cy + Math.sin(angle) * r;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      
+      ctx.fillStyle = `rgba(${Math.floor(or)}, ${Math.floor(og)}, ${Math.floor(ob)}, ${alpha * 0.15})`;
+      ctx.fill();
+    });
+    
+    // ========== PICCOLE ONDE / CREPITIO (loop perfetto) ==========
+    ripples.forEach(ripple => {
+      const ripplePhase = (t / DURATION) * ripple.cycles * Math.PI * 2 + ripple.phase;
+      const life = 0.5 + 0.5 * Math.sin(ripplePhase);
+      if (life < 0.3) return;
+      
+      const rx = cx + Math.cos(ripple.baseAngle) * ripple.baseR * R;
+      const ry = cy + Math.sin(ripple.baseAngle) * ripple.baseR * R;
+      
+      const depth = ripple.baseR;
+      let rr, rg, rb;
+      if (depth < 0.5) {
+        rr = pal.r0; rg = pal.g0; rb = pal.b0;
+      } else {
+        rr = pal.r1; rg = pal.g1; rb = pal.b1;
+      }
+      
+      ctx.fillStyle = `rgba(${Math.floor(rr+40)}, ${Math.floor(rg+30)}, ${Math.floor(rb+20)}, ${ripple.alpha * life})`;
+      ctx.beginPath();
+      ctx.arc(rx, ry, ripple.size * life, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    
+    // ========== SCHIUMA / SPuma (loop perfetto) ==========
+    foams.forEach(foam => {
+      const foamPhase = (t / DURATION) * foam.lifeCycles * Math.PI * 2 + foam.lifePhase;
+      const wobblePhase = (t / DURATION) * foam.wobbleCycles * Math.PI * 2 + foam.wobblePhase;
+      const wobbleAngle = foam.baseAngle + Math.sin(wobblePhase) * 0.15;
+      const wobbleR = foam.baseR + Math.sin(foamPhase * 1.3) * 0.03;
+      const clampedR = Math.max(0.05, Math.min(0.95, wobbleR));
+      
+      const fx = cx + Math.cos(wobbleAngle) * clampedR * R;
+      const fy = cy + Math.sin(wobbleAngle) * clampedR * R;
+      
+      const life = 0.5 + 0.5 * Math.sin(foamPhase);
+      const alpha = foam.alpha * life;
+      
+      const foamTint = (pal.r0 + pal.g0 + pal.b0) / 3 > 150 ? 0.3 : 0.1;
+      const foamR = 240 + Math.sin(t * 3 + foam.phase) * 15;
+      const foamG = 250 - foamTint * 30 + Math.sin(t * 2.5 + foam.phase * 1.3) * 5;
+      const foamB = 255;
+      
+      ctx.fillStyle = `rgba(${Math.floor(foamR)}, ${Math.floor(foamG)}, ${Math.floor(foamB)}, ${alpha})`;
+      ctx.beginPath();
+      ctx.arc(fx, fy, foam.size * (0.6 + 0.4 * life), 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.shadowColor = `rgba(200, 240, 255, ${alpha * 0.5})`;
+      ctx.shadowBlur = foam.size * 2;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+    
+    // ========== RIFLESSI DI LUCE (glints) - loop perfetto ==========
+    glints.forEach(glint => {
+      const driftPhase = (t / DURATION) * glint.driftCycles * Math.PI * 2 + glint.driftPhase;
+      const lifePhase = (t / DURATION) * glint.lifeCycles * Math.PI * 2 + glint.lifePhase;
+      
+      const driftAngle = glint.baseAngle + Math.sin(driftPhase) * 0.2;
+      const driftR = glint.baseR + Math.sin(driftPhase * 1.5 + 1) * 0.05;
+      const clampedR = Math.max(0.05, Math.min(0.95, driftR));
+      
+      const gx = cx + Math.cos(driftAngle) * clampedR * R;
+      const gy = cy + Math.sin(driftAngle) * clampedR * R;
+      
+      // Flicker con cicli interi
+      const flickerPhase = (t / DURATION) * glint.flickerCycles * Math.PI * 2 + glint.flickerPhase;
+      const flicker = (
+        Math.sin(flickerPhase) * 0.5 +
+        Math.sin(flickerPhase * 1.618 + 2.3) * 0.3 +
+        Math.sin(flickerPhase * 2.718 + 3.7) * 0.2
+      ) * 0.5 + 0.5;
+      
+      const lifePulse = Math.sin(lifePhase);
+      const life = 0.3 + 0.7 * (lifePulse * 0.5 + 0.5);
+      
+      const brightness = glint.brightness * flicker * life;
+      const sz = glint.size * (0.5 + 0.5 * flicker);
+      
+      const isIce = (pal.r0 + pal.g0 + pal.b0) / 3 > 150;
+      const r = isIce ? 255 : 220 + Math.floor(35 * brightness);
+      const g = isIce ? 250 : 245 + Math.floor(10 * brightness);
+      const b = 255;
+      
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${brightness})`;
+      ctx.beginPath();
+      ctx.arc(gx, gy, sz * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${brightness * 0.4})`;
+      ctx.beginPath();
+      ctx.arc(gx, gy, sz, 0, Math.PI * 2);
+      ctx.fill();
+      
+      ctx.shadowColor = `rgba(${isIce?200:180}, ${isIce?240:230}, 255, ${brightness * 0.6})`;
+      ctx.shadowBlur = sz * 4;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
+      if (brightness > 0.7) {
+        const rayCount = 4;
+        for (let ri = 0; ri < rayCount; ri++) {
+          const rayAngle = (ri / rayCount) * Math.PI + t * 0.5 + glint.flickerPhase;
+          const rayLen = sz * 2 * brightness;
+          ctx.strokeStyle = `rgba(${isIce?255:220}, ${isIce?250:245}, 255, ${brightness * 0.3})`;
+          ctx.lineWidth = 0.5;
+          ctx.beginPath();
+          ctx.moveTo(gx + Math.cos(rayAngle) * sz * 0.5, gy + Math.sin(rayAngle) * sz * 0.5);
+          ctx.lineTo(gx + Math.cos(rayAngle) * rayLen, gy + Math.sin(rayAngle) * rayLen);
+          ctx.stroke();
+        }
+      }
+    });
+    
+    ctx.restore();
+    
+    // ========== BORDO CERCHIO ==========
+    const borderPulse = 0.7 + 0.3 * Math.sin(t * 1.5) * Math.sin(t * 2.3);
+    
+    const outerGlow = ctx.createRadialGradient(cx, cy, R * 0.95, cx, cy, R * 1.15);
+    outerGlow.addColorStop(0, `rgba(${Math.floor(pal.r1)}, ${Math.floor(pal.g1)}, ${Math.floor(pal.b1)}, ${0.2 * borderPulse})`);
+    outerGlow.addColorStop(0.5, `rgba(${Math.floor(pal.r2)}, ${Math.floor(pal.g2)}, ${Math.floor(pal.b2)}, ${0.1 * borderPulse})`);
+    outerGlow.addColorStop(1, `rgba(${Math.floor(pal.r2*0.5)}, ${Math.floor(pal.g2*0.5)}, ${Math.floor(pal.b2*0.5)}, 0)`);
+    ctx.fillStyle = outerGlow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R * 1.15, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = `rgba(${Math.floor(pal.r0)}, ${Math.floor(pal.g0)}, ${Math.floor(pal.b0)}, ${0.5 * borderPulse})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.strokeStyle = `rgba(${Math.floor(pal.r1)}, ${Math.floor(pal.g1)}, ${Math.floor(pal.b1)}, ${0.3 * borderPulse})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(cx, cy, R - 3, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    requestAnimationFrame(draw);
+  }
+  
+  draw();
+</script>
+</body>
+</html>'''
+
+with open('/mnt/agents/output/Mare.html', 'w', encoding='utf-8') as f:
+    f.write(html_content)
+
+
