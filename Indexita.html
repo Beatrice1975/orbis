@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Orbis - Scegli la tua animazione</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100vw;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  .container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .title {
+    color: #fff;
+    font-size: 2.5rem;
+    font-weight: 300;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    text-shadow: 0 0 20px rgba(255,255,255,0.3);
+  }
+
+  .buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 280px;
+  }
+
+  .btn {
+    display: block;
+    padding: 16px 40px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 50px;
+    background: rgba(255,255,255,0.05);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 400;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .btn-aura {
+    border-color: rgba(255, 100, 200, 0.3);
+    box-shadow: 0 0 30px rgba(255, 100, 200, 0.1);
+  }
+  .btn-aura:hover {
+    background: rgba(255, 100, 200, 0.15);
+    border-color: rgba(255, 100, 200, 0.6);
+    box-shadow: 0 0 40px rgba(255, 100, 200, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn-tempesta {
+    border-color: rgba(100, 180, 255, 0.3);
+    box-shadow: 0 0 30px rgba(100, 180, 255, 0.1);
+  }
+  .btn-tempesta:hover {
+    background: rgba(100, 180, 255, 0.15);
+    border-color: rgba(100, 180, 255, 0.6);
+    box-shadow: 0 0 40px rgba(100, 180, 255, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn-ignis {
+    border-color: rgba(255, 120, 30, 0.3);
+    box-shadow: 0 0 30px rgba(255, 120, 30, 0.1);
+  }
+  .btn-ignis:hover {
+    background: rgba(255, 120, 30, 0.15);
+    border-color: rgba(255, 120, 30, 0.6);
+    box-shadow: 0 0 40px rgba(255, 120, 30, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn-mare {
+    border-color: rgba(0, 200, 220, 0.3);
+    box-shadow: 0 0 30px rgba(0, 200, 220, 0.1);
+  }
+  .btn-mare:hover {
+    background: rgba(0, 200, 220, 0.15);
+    border-color: rgba(0, 200, 220, 0.6);
+    box-shadow: 0 0 40px rgba(0, 200, 220, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .btn-astro {
+    border-color: rgba(140, 100, 220, 0.3);
+    box-shadow: 0 0 30px rgba(140, 100, 220, 0.1);
+  }
+  .btn-astro:hover {
+    background: rgba(140, 100, 220, 0.15);
+    border-color: rgba(140, 100, 220, 0.6);
+    box-shadow: 0 0 40px rgba(140, 100, 220, 0.3);
+    transform: translateY(-2px);
+  }
+
+  .subtitle {
+    color: rgba(255,255,255,0.4);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    margin-top: 5px;
+  }
+
+  .bg-glow {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(100,100,150,0.1) 0%, transparent 70%);
+    animation: pulse 4s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+    50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.1); }
+  }
+</style>
+<base target="_blank">
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <h1 class="title">Orbis</h1>
+
+    <div class="buttons">
+      <a href="Aura.html" class="btn btn-aura">Aura</a>
+      <a href="Tempesta.html" class="btn btn-tempesta">Tempesta</a>
+      <a href="Ignis.html" class="btn btn-ignis">Ignis</a>
+      <a href="Mare.html" class="btn btn-mare">Mare</a>
+      <a href="Astro.html" class="btn btn-astro">Astro</a>
+    </div>
+
+    <p class="subtitle">Scegli la tua animazione</p>
+  </div>
+</body>
+</html>
