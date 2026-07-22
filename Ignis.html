@@ -233,7 +233,10 @@
     ctx.beginPath();
     ctx.arc(cx, cy, R-3, 0, Math.PI*2);
     ctx.stroke();
+    requestAnimationFrame(draw);
+  }
 
+  draw();
    
 </script>
 </body>
