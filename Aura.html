@@ -1,203 +1,133 @@
-
-html_content = '''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Cerchio di Luce</title>
+<title>Orbis - Aura</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
+  html, body {
     background: #000;
     overflow: hidden;
+    width: 100vw;
+    height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    width: 100vw;
   }
-  canvas { display: block; }
+  canvas {
+    display: block;
+  }
 </style>
+<base target="_blank">
 </head>
 <body>
 <canvas id="c"></canvas>
 <script>
+
   const canvas = document.getElementById('c');
   const ctx = canvas.getContext('2d');
-  
+
   function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   }
   resize();
   window.addEventListener('resize', resize);
-  
+
+  const W = () => canvas.width;
+  const H = () => canvas.height;
+  const CX = () => canvas.width / 2;
+  const CY = () => canvas.height / 2;
+  const BASE_RADIUS = () => Math.min(canvas.width, canvas.height) * 0.42;
   const DURATION = 30;
-  
-  function getTime() {
-    return (performance.now() / 1000) % DURATION;
+
+  // Three overlapping circles with soft blending
+  const PARTICLES = 120;
+  const particles = [];
+  for (let i = 0; i < PARTICLES; i++) {
+    particles.push({
+      angle: Math.random() * Math.PI * 2,
+      dist: Math.random(),
+      size: 2 + Math.random() * 4,
+      speed: 0.3 + Math.random() * 0.5,
+      phase: Math.random() * Math.PI * 2,
+      opacityPhase: Math.random() * Math.PI * 2
+    });
   }
-  
-  // Loop fluido: il colore scorre continuamente
-  function getColors(t) {
-    const shift = (t / DURATION) * 360;
-    return [
-      (0 + shift) % 360,
-      (120 + shift) % 360,
-      (240 + shift) % 360
-    ];
+
+  function getPalette(t) {
+    const cycle = (t / DURATION) % 1;
+    const hue1 = (cycle * 360) % 360;
+    const hue2 = (hue1 + 120) % 360;
+    const hue3 = (hue1 + 240) % 360;
+    return [hue1, hue2, hue3];
   }
-  
-  function hsla(h, s, l, a) {
-    return `hsla(${h}, ${s}%, ${l}%, ${a})`;
+
+  function hsl(h, s, l) {
+    return `hsl(${h}, ${s}%, ${l}%)`;
   }
-  
+
   function draw() {
-    const t = getTime();
-    const w = canvas.width;
-    const h = canvas.height;
-    const cx = w / 2;
-    const cy = h / 2;
-    const baseRadius = Math.min(w, h) * 0.35;
-    
-    // PULSING DEL RAGGIO: ciclo che parte e finisce nello stesso punto
-    const pulseCycles = 2;
-    const pulsePhase = (t / DURATION) * pulseCycles * Math.PI * 2;
-    const pulse = 1 + Math.sin(pulsePhase) * 0.05;
-    const r = baseRadius * pulse;
-    
-    const hues = getColors(t);
-    
-    // Sfondo nero
+    const t = (performance.now() / 1000) % DURATION;
+    const cx = CX(), cy = CY(), r = BASE_RADIUS();
+    const [h1, h2, h3] = getPalette(t);
+
     ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, w, h);
-    
-    // --- TRE AREE con sfumatura radiale ---
-    
-    // Area 1: sinistra
-    const g1 = ctx.createRadialGradient(cx - r * 0.25, cy - r * 0.1, 0, cx - r * 0.25, cy - r * 0.1, r * 0.9);
-    g1.addColorStop(0, hsla(hues[0], 85, 65, 0.9));
-    g1.addColorStop(0.5, hsla(hues[0], 85, 60, 0.7));
-    g1.addColorStop(1, hsla(hues[0], 85, 55, 0));
-    ctx.fillStyle = g1;
-    ctx.beginPath();
-    ctx.arc(cx - r * 0.25, cy - r * 0.1, r * 0.9, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Area 2: destra
-    const g2 = ctx.createRadialGradient(cx + r * 0.25, cy - r * 0.1, 0, cx + r * 0.25, cy - r * 0.1, r * 0.9);
-    g2.addColorStop(0, hsla(hues[1], 85, 65, 0.9));
-    g2.addColorStop(0.5, hsla(hues[1], 85, 60, 0.7));
-    g2.addColorStop(1, hsla(hues[1], 85, 55, 0));
-    ctx.fillStyle = g2;
-    ctx.beginPath();
-    ctx.arc(cx + r * 0.25, cy - r * 0.1, r * 0.9, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Area 3: basso
-    const g3 = ctx.createRadialGradient(cx, cy + r * 0.35, 0, cx, cy + r * 0.35, r * 0.9);
-    g3.addColorStop(0, hsla(hues[2], 85, 65, 0.9));
-    g3.addColorStop(0.5, hsla(hues[2], 85, 60, 0.7));
-    g3.addColorStop(1, hsla(hues[2], 85, 55, 0));
-    ctx.fillStyle = g3;
-    ctx.beginPath();
-    ctx.arc(cx, cy + r * 0.35, r * 0.9, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // --- ONDE fluide lungo il bordo con loop perfetto ---
-    for (let i = 0; i < 4; i++) {
-      const initialPhase = i * Math.PI / 2;
-      // Cicli interi per entrambe le componenti
-      const waveCycles = 2 + i;
-      const alphaCycles = 2 + i;
-      const alpha = 0.4 + Math.sin(initialPhase + (t / DURATION) * alphaCycles * Math.PI * 2) * 0.3;
-      
-      ctx.save();
-      ctx.globalAlpha = alpha;
-      ctx.lineWidth = 3;
-      ctx.shadowBlur = 15;
-      
+    ctx.fillRect(0, 0, W(), H());
+
+    // Three soft circles
+    const offsets = [
+      { dx: -r * 0.35, dy: -r * 0.2, hue: h1 },
+      { dx: r * 0.35, dy: -r * 0.2, hue: h2 },
+      { dx: 0, dy: r * 0.4, hue: h3 }
+    ];
+
+    for (const off of offsets) {
+      const grd = ctx.createRadialGradient(
+        cx + off.dx, cy + off.dy, 0,
+        cx + off.dx, cy + off.dy, r * 0.9
+      );
+      grd.addColorStop(0, hsl(off.hue, 90, 55));
+      grd.addColorStop(0.5, hsl(off.hue, 80, 45));
+      grd.addColorStop(1, 'transparent');
+      ctx.fillStyle = grd;
       ctx.beginPath();
-      for (let j = 0; j <= 200; j++) {
-        const angle = (j / 200) * Math.PI * 2;
-        // Entrambe le componenti sinusoidali con cicli interi
-        const fastPhase = initialPhase + (t / DURATION) * waveCycles * Math.PI * 2;
-        // slowCycles deve essere intero per avere loop perfetto
-        const slowCycles = waveCycles; // stesso numero di cicli
-        const slowPhase = initialPhase + (t / DURATION) * slowCycles * Math.PI * 2;
-        const wave = Math.sin(angle * 6 + fastPhase) * (r * 0.08) * Math.sin(slowPhase);
-        const rr = r + wave;
-        const x = cx + Math.cos(angle) * rr;
-        const y = cy + Math.sin(angle) * rr;
-        if (j === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.strokeStyle = hsla(hues[0], 80, 55, 1);
-      ctx.shadowColor = ctx.strokeStyle;
-      ctx.stroke();
-      ctx.restore();
-    }
-    
-    // --- PARTICELLE con loop perfetto e fase iniziale ---
-    const particleCount = 20;
-    for (let i = 0; i < particleCount; i++) {
-      const initialPhase = (i / particleCount) * Math.PI * 2;
-      const fullRotations = 1 + Math.floor(i / 3);
-      const pAngle = initialPhase + (t / DURATION) * fullRotations * Math.PI * 2;
-      
-      const radialCycles = 1 + Math.floor(i / 4);
-      const radialPhase = initialPhase * 0.7;
-      const pRadius = r * (0.5 + Math.sin(radialPhase + (t / DURATION) * radialCycles * Math.PI * 2) * 0.3);
-      
-      const px = cx + Math.cos(pAngle) * pRadius;
-      const py = cy + Math.sin(pAngle) * pRadius;
-      
-      const sizeCycles = 2 + Math.floor(i / 5);
-      const sizePhase = initialPhase * 0.5;
-      const size = 6 + Math.sin(sizePhase + (t / DURATION) * sizeCycles * Math.PI * 2) * 4;
-      
-      const alphaCycles = 1 + Math.floor(i / 3);
-      const alphaPhase = initialPhase * 0.3;
-      const alpha = 0.5 + Math.sin(alphaPhase + (t / DURATION) * alphaCycles * Math.PI * 2) * 0.3;
-      
-      const hue = hues[i % 3];
-      
-      ctx.save();
-      ctx.globalAlpha = Math.max(0.1, Math.min(1, alpha));
-      ctx.fillStyle = hsla(hue, 85, 60, 1);
-      ctx.shadowColor = ctx.fillStyle;
-      ctx.shadowBlur = 20;
-      ctx.beginPath();
-      ctx.arc(px, py, Math.max(1, size), 0, Math.PI * 2);
+      ctx.arc(cx + off.dx, cy + off.dy, r * 0.9, 0, Math.PI * 2);
       ctx.fill();
-      ctx.restore();
     }
-    
-    // --- BORDO cerchio con loop perfetto ---
-    const glowCycles = 2;
-    const glowPhase = (t / DURATION) * glowCycles * Math.PI * 2;
-    const borderGlow = 25 + Math.sin(glowPhase) * 10;
-    
-    ctx.save();
-    ctx.lineWidth = 4;
-    ctx.shadowBlur = borderGlow;
-    ctx.strokeStyle = hsla(hues[0], 80, 55, 1);
-    ctx.shadowColor = ctx.strokeStyle;
+
+    // Particles
+    for (const p of particles) {
+      const pt = (t * p.speed + p.phase) % (Math.PI * 2);
+      const rad = p.dist * r * 0.85;
+      const px = cx + Math.cos(p.angle + pt * 0.1) * rad;
+      const py = cy + Math.sin(p.angle + pt * 0.1) * rad;
+      const op = 0.3 + 0.7 * Math.sin(t * 2 + p.opacityPhase);
+      ctx.fillStyle = `rgba(255,255,255,${op * 0.6})`;
+      ctx.beginPath();
+      ctx.arc(px, py, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Main circle border with glow
+    const pulse = 1 + 0.03 * Math.sin((t / DURATION) * 2 * Math.PI * 2);
+
+    // Border glow
+    const glow = 10 + 5 * Math.sin((t / DURATION) * Math.PI * 2);
+    ctx.shadowColor = hsl(h1, 80, 60);
+    ctx.shadowBlur = glow;
+    ctx.strokeStyle = hsl(h1, 70, 70);
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.arc(cx, cy, r * pulse, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.restore();
-    
+    ctx.shadowBlur = 0;
+
     requestAnimationFrame(draw);
   }
-  
+
   draw();
 </script>
 </body>
-</html>'''
-
-with open('/mnt/agents/output/cerchio_luce_v23.html', 'w', encoding='utf-8') as f:
-    f.write(html_content)
-
-
+</html>
