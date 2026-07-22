@@ -258,43 +258,58 @@
     masterGain.gain.value = 0.4;
     masterGain.connect(audioCtx.destination);
     isPlaying = true;
+    startFireFlame();
     startFireCrackle();
   }
 
-  // Crepitio del fuoco: rumore bianco con burst casuali
-  function startFireCrackle() {
-    // Rumore di fondo basso (fiamma continua)
+  // Rumore di fondo della fiamma: rumore rosa filtrato, morbido e continuo
+  function startFireFlame() {
     const bufferSize = 2 * audioCtx.sampleRate;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
     const data = buffer.getChannelData(0);
+    let lastOut = 0;
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * 0.3;
+      const white = Math.random() * 2 - 1;
+      lastOut = (lastOut + (0.02 * white)) / 1.02;
+      data[i] = lastOut * 2;
     }
     const noise = audioCtx.createBufferSource();
     noise.buffer = buffer;
     noise.loop = true;
 
+    // Filtro passa-basso morbido per il "respiro" della fiamma
     const filter = audioCtx.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.value = 600;
-    filter.Q.value = 0.3;
+    filter.frequency.value = 250;
+    filter.Q.value = 0.2;
+
+    // LFO che modula il volume = fiamma che "respira"
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 0.3 + Math.random() * 0.4; // 0.3-0.7 Hz = respiro lento
+    lfoGain.gain.value = 0.015;
+    lfo.connect(lfoGain);
 
     const gain = audioCtx.createGain();
-    gain.gain.value = 0.03;
+    gain.gain.value = 0.04;
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(masterGain);
+    lfoGain.connect(gain.gain);
     noise.start();
+    lfo.start();
+  }
 
-    // Burst di crepitio - meno frequenti, toni vari
+  // Crepitio del fuoco: meno frequente, più naturale
+  function startFireCrackle() {
     function playCrackle() {
       if (!isPlaying) return;
       const burstCount = 1 + Math.floor(Math.random() * 2);
       for (let b = 0; b < burstCount; b++) {
         setTimeout(() => {
           if (!isPlaying) return;
-          const dur = 0.015 + Math.random() * 0.04;
+          const dur = 0.01 + Math.random() * 0.03;
           const bufSize = Math.floor(audioCtx.sampleRate * dur);
           const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
           const d = buf.getChannelData(0);
@@ -306,23 +321,22 @@
 
           const bp = audioCtx.createBiquadFilter();
           bp.type = 'bandpass';
-          // Frequenze variabili: alcuni gravi (800-2000), altri acuti (2500-5000)
-          const isDeep = Math.random() > 0.6;
-          bp.frequency.value = isDeep ? (800 + Math.random() * 1200) : (2500 + Math.random() * 2500);
-          bp.Q.value = isDeep ? 1.2 : 0.7;
+          const isDeep = Math.random() > 0.5;
+          bp.frequency.value = isDeep ? (600 + Math.random() * 1000) : (2000 + Math.random() * 2000);
+          bp.Q.value = isDeep ? 1.0 : 0.6;
 
           const g = audioCtx.createGain();
-          g.gain.value = isDeep ? (0.06 + Math.random() * 0.06) : (0.04 + Math.random() * 0.05);
+          g.gain.value = isDeep ? (0.05 + Math.random() * 0.05) : (0.03 + Math.random() * 0.04);
 
           src.connect(bp);
           bp.connect(g);
           g.connect(masterGain);
           src.start();
-        }, b * (40 + Math.random() * 80));
+        }, b * (50 + Math.random() * 100));
       }
-      setTimeout(playCrackle, 200 + Math.random() * 600);
+      setTimeout(playCrackle, 400 + Math.random() * 1200);
     }
-    setTimeout(playCrackle, 500);
+    setTimeout(playCrackle, 800);
   }
 
   function startAudio() {
