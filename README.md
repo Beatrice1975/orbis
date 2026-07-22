@@ -30,7 +30,7 @@ Licenza
 Progetto personale — libero uso per scopi non commerciali.
 ________________________________________________________________________________________________________________________________________________________________
 
-INGLESE
+ENGLISH
 
 Orbis
 Orbis is a collection of HTML5 animations designed to be displayed on a smartphone screen and reflected inside a semi-transparent 3D-printed object. The optical effect creates an illusion of three-dimensional depth, transforming the play of light into immersive and relaxing visual experiences.
