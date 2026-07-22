@@ -6,7 +6,15 @@
 <title>Orbis - Ignis</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #000; overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
+  html, body {
+    background: #000;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
   canvas { display: block; }
 </style>
 <base target="_blank">
@@ -237,7 +245,115 @@
   }
 
   draw();
-   
+
+  // ===== AUDIO =====
+  let audioCtx = null;
+  let masterGain = null;
+  let isPlaying = false;
+
+  function initAudio() {
+    if (audioCtx) return;
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.4;
+    masterGain.connect(audioCtx.destination);
+    isPlaying = true;
+    startFireCrackle();
+  }
+
+  // Crepitio del fuoco: rumore bianco con burst casuali
+  function startFireCrackle() {
+    // Rumore di fondo basso (fiamma continua)
+    const bufferSize = 2 * audioCtx.sampleRate;
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.3;
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    noise.loop = true;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 600;
+    filter.Q.value = 0.3;
+
+    const gain = audioCtx.createGain();
+    gain.gain.value = 0.03;
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(masterGain);
+    noise.start();
+
+    // Burst di crepitio - meno frequenti, toni vari
+    function playCrackle() {
+      if (!isPlaying) return;
+      const burstCount = 1 + Math.floor(Math.random() * 2);
+      for (let b = 0; b < burstCount; b++) {
+        setTimeout(() => {
+          if (!isPlaying) return;
+          const dur = 0.015 + Math.random() * 0.04;
+          const bufSize = Math.floor(audioCtx.sampleRate * dur);
+          const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) {
+            d[i] = (Math.random() * 2 - 1) * (1 - i / bufSize);
+          }
+          const src = audioCtx.createBufferSource();
+          src.buffer = buf;
+
+          const bp = audioCtx.createBiquadFilter();
+          bp.type = 'bandpass';
+          // Frequenze variabili: alcuni gravi (800-2000), altri acuti (2500-5000)
+          const isDeep = Math.random() > 0.6;
+          bp.frequency.value = isDeep ? (800 + Math.random() * 1200) : (2500 + Math.random() * 2500);
+          bp.Q.value = isDeep ? 1.2 : 0.7;
+
+          const g = audioCtx.createGain();
+          g.gain.value = isDeep ? (0.06 + Math.random() * 0.06) : (0.04 + Math.random() * 0.05);
+
+          src.connect(bp);
+          bp.connect(g);
+          g.connect(masterGain);
+          src.start();
+        }, b * (40 + Math.random() * 80));
+      }
+      setTimeout(playCrackle, 200 + Math.random() * 600);
+    }
+    setTimeout(playCrackle, 500);
+  }
+
+  function startAudio() {
+    if (!audioCtx) {
+      initAudio();
+    } else if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+  document.addEventListener('click', startAudio, { once: true });
+  document.addEventListener('touchstart', startAudio, { once: true });
+  document.addEventListener('pointerdown', startAudio, { once: true });
+</script>
+
+<!-- Audio activation overlay -->
+<div id="audio-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;display:flex;justify-content:center;align-items:center;background:rgba(0,0,0,0.6);z-index:1000;cursor:pointer;transition:opacity 0.5s;">
+  <div style="color:#fff;font-family:sans-serif;font-size:1.2rem;letter-spacing:2px;text-align:center;">
+    <div style="font-size:2rem;margin-bottom:10px;">🔊</div>
+    Tap to enable audio
+  </div>
+</div>
+<script>
+  (function() {
+    const overlay = document.getElementById('audio-overlay');
+    function hideOverlay() {
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.style.display = 'none', 500);
+    }
+    overlay.addEventListener('click', hideOverlay);
+    overlay.addEventListener('touchstart', hideOverlay);
+  })();
 </script>
 </body>
 </html>
