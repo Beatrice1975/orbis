@@ -390,14 +390,14 @@
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.35;
+    masterGain.gain.value = 0.45;
     masterGain.connect(audioCtx.destination);
     isPlaying = true;
     startOceanNoise();
     startWaveSwells();
   }
 
-  // Rumore di fondo del mare (rumore rosa filtrato)
+  // Rumore di fondo del mare (rumore rosa filtrato) con respiro dell'acqua
   function startOceanNoise() {
     const bufferSize = 2 * audioCtx.sampleRate;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -417,20 +417,29 @@
     filter.frequency.value = 400;
     filter.Q.value = 0.3;
 
+    // LFO che modula il volume = respiro dell'acqua
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.frequency.value = 0.15 + Math.random() * 0.1; // respiro lento
+    lfoGain.gain.value = 0.06; // ampiezza del respiro
+    lfo.connect(lfoGain);
+
     const gain = audioCtx.createGain();
-    gain.gain.value = 0.06;
+    gain.gain.value = 0.20;
 
     noise.connect(filter);
     filter.connect(gain);
     gain.connect(masterGain);
+    lfoGain.connect(gain.gain);
     noise.start();
+    lfo.start();
   }
 
   // Onde ritmiche - swell che si avvicinano e si allontanano
   function startWaveSwells() {
     function playSwell() {
       if (!isPlaying) return;
-      const dur = 3 + Math.random() * 4;
+      const dur = 4 + Math.random() * 5;
       const bufferSize = Math.floor(audioCtx.sampleRate * dur);
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
@@ -439,21 +448,24 @@
         const white = Math.random() * 2 - 1;
         lastOut = (lastOut + (0.02 * white)) / 1.02;
         const t = i / bufferSize;
-        const envelope = Math.sin(t * Math.PI) * 0.8 + 0.2;
-        data[i] = lastOut * envelope * 1.5;
+        // Envelope a campana con coda lunga = onda che arriva e si ritira
+        const envelope = Math.pow(Math.sin(t * Math.PI), 0.7) * 0.9 + 0.1;
+        data[i] = lastOut * envelope * 2.0;
       }
       const src = audioCtx.createBufferSource();
       src.buffer = buffer;
 
+      // Filtro che si muove come acqua che si infrange
       const filter = audioCtx.createBiquadFilter();
       filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(200, audioCtx.currentTime);
-      filter.frequency.exponentialRampToValueAtTime(500, audioCtx.currentTime + dur * 0.3);
-      filter.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + dur);
+      filter.frequency.setValueAtTime(150, audioCtx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + dur * 0.2);
+      filter.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + dur * 0.5);
+      filter.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + dur);
 
       const gain = audioCtx.createGain();
       gain.gain.setValueAtTime(0, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 0.5);
+      gain.gain.linearRampToValueAtTime(0.18, audioCtx.currentTime + 0.8);
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
 
       src.connect(filter);
@@ -461,7 +473,7 @@
       gain.connect(masterGain);
       src.start();
 
-      setTimeout(playSwell, 2000 + Math.random() * 4000);
+      setTimeout(playSwell, 3000 + Math.random() * 5000);
     }
     setTimeout(playSwell, 1000);
   }
