@@ -240,14 +240,15 @@
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.3;
+    masterGain.gain.value = 0.45;
     masterGain.connect(audioCtx.destination);
     isPlaying = true;
     startRainNoise();
+    startRainDrops();
     scheduleThunder();
   }
 
-  // Rumore bianco filtrato per pioggia
+  // Rumore bianco filtrato per pioggia con intensità variabile
   function createRainNoise() {
     const bufferSize = 2 * audioCtx.sampleRate;
     const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
@@ -266,7 +267,7 @@
     filter.Q.value = 0.5;
 
     const gain = audioCtx.createGain();
-    gain.gain.value = 0.1;
+    gain.gain.value = 0.12;
 
     noise.connect(filter);
     filter.connect(gain);
@@ -278,6 +279,23 @@
   let rainRef = null;
   function startRainNoise() {
     rainRef = createRainNoise();
+    // Modula l'intensità della pioggia nel tempo
+    modulateRainIntensity();
+  }
+
+  function modulateRainIntensity() {
+    if (!rainRef || !isPlaying) return;
+
+    // Intensità che oscilla lentamente: pioggia leggera -> forte -> leggera
+    const now = audioCtx.currentTime;
+    const intensity = 0.04 + Math.random() * 0.08; // tra 0.04 e 0.12
+    const duration = 3 + Math.random() * 5; // cambia ogni 3-8 secondi
+
+    rainRef.gain.gain.cancelScheduledValues(now);
+    rainRef.gain.gain.setValueAtTime(rainRef.gain.gain.value, now);
+    rainRef.gain.gain.linearRampToValueAtTime(intensity, now + duration);
+
+    setTimeout(modulateRainIntensity, duration * 1000);
   }
 
   // Tuono: rumore rosa con filtro passa-basso modulato + riverbero
@@ -309,7 +327,7 @@
     // Envelope: attacco rapido, decay lungo
     const gain = audioCtx.createGain();
     gain.gain.setValueAtTime(0, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.12 * intensity, audioCtx.currentTime + 0.05);
+    gain.gain.linearRampToValueAtTime(0.15 * intensity, audioCtx.currentTime + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
 
     // Riverbero semplice (delay)
@@ -330,6 +348,68 @@
 
     noise.start();
     noise.stop(audioCtx.currentTime + duration + 0.5);
+  }
+
+  // Gocce d'acqua sordi - come rubinetto che perde
+  function startRainDrops() {
+    function playDrop() {
+      if (!isPlaying) return;
+
+      // Solo rumore rosa filtrato molto basso = goccia sorda, nessun tono
+      const dur = 0.08 + Math.random() * 0.06;
+      const bufSize = Math.floor(audioCtx.sampleRate * dur);
+      const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+      const d = buf.getChannelData(0);
+
+      // Rumore rosa (più naturale del bianco)
+      let lastOut = 0;
+      for (let i = 0; i < bufSize; i++) {
+        const white = Math.random() * 2 - 1;
+        lastOut = (lastOut + (0.02 * white)) / 1.02;
+        // Envelope: attacco istantaneo, decay morbido
+        const env = Math.pow(1 - i / bufSize, 1.5);
+        d[i] = lastOut * env * 1.5;
+      }
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buf;
+
+      // Filtro passa-basso MOLTO basso = sordo, niente "piu piu"
+      const lp = audioCtx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 400 + Math.random() * 300; // 400-700 Hz = molto grave
+      lp.Q.value = 0.3;
+
+      // Secondo filtro passa-alto per togliere il gracchio sotto 100 Hz
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 80;
+
+      const g = audioCtx.createGain();
+      g.gain.setValueAtTime(0, audioCtx.currentTime);
+      g.gain.linearRampToValueAtTime(0.025 + Math.random() * 0.015, audioCtx.currentTime + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur * 1.2);
+
+      // Riverbero cortissimo per rimbombo naturale
+      const delay = audioCtx.createDelay();
+      delay.delayTime.value = 0.02 + Math.random() * 0.02;
+      const delayGain = audioCtx.createGain();
+      delayGain.gain.value = 0.2;
+
+      noise.connect(lp);
+      lp.connect(hp);
+      hp.connect(g);
+      g.connect(masterGain);
+      g.connect(delay);
+      delay.connect(delayGain);
+      delayGain.connect(masterGain);
+
+      noise.start();
+
+      // Prossima goccia: intervalli irregolari
+      setTimeout(playDrop, 200 + Math.random() * 500);
+    }
+    setTimeout(playDrop, 800);
   }
 
   // Tuono
