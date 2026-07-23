@@ -81,7 +81,7 @@
     const angle = Math.random() * Math.PI * 2;
     const twinkleCycles = 1 + Math.floor(Math.random() * 4);
     stars.push({
-      baseR: r, baseAngle: angle, size: 0.5 + Math.random() * 2.5, brightness: 0.3 + Math.random() * 0.7,
+      baseR: r, baseAngle: angle, size: 0.8 + Math.random() * 3.2, brightness: 0.3 + Math.random() * 0.7,
       twinkleCycles: twinkleCycles, twinklePhase: Math.random() * Math.PI * 2,
       color: Math.random() > 0.7 ? 'warm' : (Math.random() > 0.5 ? 'cool' : 'white'),
       trembleSpeed: 8 + Math.random() * 15, tremblePhase: Math.random() * Math.PI * 2,
@@ -98,7 +98,7 @@
       const angle = arm * (Math.PI * 2 / spiralArms) + t2 * Math.PI * 4;
       const r = t2 * 0.95;
       const pulseCycles = 1 + Math.floor(Math.random() * 3);
-      spirals.push({ arm: arm, t: t2, baseAngle: angle, baseR: r, size: 1 + (1 - t2) * 3, brightness: 0.2 + (1 - t2) * 0.6, pulseCycles: pulseCycles, pulsePhase: Math.random() * Math.PI * 2 });
+      spirals.push({ arm: arm, t: t2, baseAngle: angle, baseR: r, size: 2.5 + (1 - t2) * 6, brightness: 0.2 + (1 - t2) * 0.6, pulseCycles: pulseCycles, pulsePhase: Math.random() * Math.PI * 2 });
     }
   }
 
@@ -109,7 +109,7 @@
     const r = Math.pow(Math.random(), 0.6);
     const angle = Math.random() * Math.PI * 2;
     const driftCycles = 1 + Math.floor(Math.random() * 2);
-    nebulas.push({ baseR: r, baseAngle: angle, size: 5 + Math.random() * 20, alpha: 0.03 + Math.random() * 0.08, driftCycles: driftCycles, driftPhase: Math.random() * Math.PI * 2, hue: 260 + Math.random() * 60 });
+    nebulas.push({ baseR: r, baseAngle: angle, size: 8 + Math.random() * 28, alpha: 0.05 + Math.random() * 0.12, driftCycles: driftCycles, driftPhase: Math.random() * Math.PI * 2, hue: 260 + Math.random() * 60 });
   }
 
   // ========== PIANETI (orbita: cicli interi in 30 secondi) ==========
@@ -191,7 +191,7 @@
 
     // Linee spirale
     ctx.strokeStyle = `rgba(${Math.floor(pal.spiralR*0.6)}, ${Math.floor(pal.spiralG*0.5)}, ${Math.floor(pal.spiralB*0.7)}, 0.08)`;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 2.5;
     for (let arm = 0; arm < spiralArms; arm++) {
       ctx.beginPath();
       for (let i = 0; i <= spiralPoints; i++) {
@@ -314,7 +314,7 @@
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.35;
+    masterGain.gain.value = 0.45;
     masterGain.connect(audioCtx.destination);
     isPlaying = true;
     startSpaceDrone();
@@ -340,7 +340,7 @@
       lfoGain.connect(osc.frequency);
 
       gain.gain.value = 0;
-      gain.gain.linearRampToValueAtTime(0.06 / freqs.length, audioCtx.currentTime + 3);
+      gain.gain.linearRampToValueAtTime(0.12 / freqs.length, audioCtx.currentTime + 3);
 
       osc.connect(gain);
       gain.connect(masterGain);
@@ -375,7 +375,7 @@
 
       // Envelope morbido
       carrierGain.gain.setValueAtTime(0, audioCtx.currentTime);
-      carrierGain.gain.linearRampToValueAtTime(0.04, audioCtx.currentTime + 0.1);
+      carrierGain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 0.1);
       carrierGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 2 + Math.random() * 2);
 
       carrier.connect(carrierGain);
