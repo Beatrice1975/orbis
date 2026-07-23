@@ -12,14 +12,22 @@
   html, body {
     background: #000;
     overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  #app {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    width: 100dvw;
+    height: 100vh;
+    height: 100dvh;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    height: 100dvh;
-    width: 100vw;
-    width: 100dvw;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #000;
+    z-index: 1;
   }
 
   .container {
@@ -70,7 +78,7 @@
     border-color: rgba(255, 100, 200, 0.3);
     box-shadow: 0 0 30px rgba(255, 100, 200, 0.1);
   }
-  .btn-aura:active {
+  .btn-aura:hover, .btn-aura:active {
     background: rgba(255, 100, 200, 0.15);
     border-color: rgba(255, 100, 200, 0.6);
     box-shadow: 0 0 40px rgba(255, 100, 200, 0.3);
@@ -81,7 +89,7 @@
     border-color: rgba(100, 180, 255, 0.3);
     box-shadow: 0 0 30px rgba(100, 180, 255, 0.1);
   }
-  .btn-tempesta:active {
+  .btn-tempesta:hover, .btn-tempesta:active {
     background: rgba(100, 180, 255, 0.15);
     border-color: rgba(100, 180, 255, 0.6);
     box-shadow: 0 0 40px rgba(100, 180, 255, 0.3);
@@ -92,7 +100,7 @@
     border-color: rgba(255, 120, 30, 0.3);
     box-shadow: 0 0 30px rgba(255, 120, 30, 0.1);
   }
-  .btn-ignis:active {
+  .btn-ignis:hover, .btn-ignis:active {
     background: rgba(255, 120, 30, 0.15);
     border-color: rgba(255, 120, 30, 0.6);
     box-shadow: 0 0 40px rgba(255, 120, 30, 0.3);
@@ -103,7 +111,7 @@
     border-color: rgba(0, 200, 220, 0.3);
     box-shadow: 0 0 30px rgba(0, 200, 220, 0.1);
   }
-  .btn-mare:active {
+  .btn-mare:hover, .btn-mare:active {
     background: rgba(0, 200, 220, 0.15);
     border-color: rgba(0, 200, 220, 0.6);
     box-shadow: 0 0 40px rgba(0, 200, 220, 0.3);
@@ -114,7 +122,7 @@
     border-color: rgba(140, 100, 220, 0.3);
     box-shadow: 0 0 30px rgba(140, 100, 220, 0.1);
   }
-  .btn-astro:active {
+  .btn-astro:hover, .btn-astro:active {
     background: rgba(140, 100, 220, 0.15);
     border-color: rgba(140, 100, 220, 0.6);
     box-shadow: 0 0 40px rgba(140, 100, 220, 0.3);
@@ -139,7 +147,7 @@
     background: radial-gradient(circle, rgba(100,100,150,0.1) 0%, transparent 70%);
     animation: pulse 4s ease-in-out infinite;
     pointer-events: none;
-    z-index: -1;
+    z-index: 0;
   }
 
   @keyframes pulse {
@@ -168,11 +176,58 @@
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
   }
-  .exit-btn:active {
+  .exit-btn:hover, .exit-btn:active {
     background: rgba(255,80,80,0.3);
     border-color: rgba(255,80,80,0.6);
     color: #fff;
     transform: scale(1.1);
+  }
+
+  /* Fullscreen prompt overlay */
+  #fsPrompt {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    gap: 30px;
+    padding: 20px;
+    text-align: center;
+  }
+  #fsPrompt.hidden {
+    display: none;
+  }
+  #fsPrompt h2 {
+    color: #fff;
+    font-size: 2rem;
+    font-weight: 300;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(255,255,255,0.3);
+  }
+  #fsBtn {
+    padding: 16px 56px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50px;
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 400;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+  #fsBtn:hover, #fsBtn:active {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.6);
+    box-shadow: 0 0 30px rgba(255,255,255,0.2);
+    transform: scale(1.05);
   }
 </style>
 <base target="_blank">
@@ -181,46 +236,74 @@
 <body>
   <div class="bg-glow"></div>
 
-  <div class="container">
-    <h1 class="title">Orbis</h1>
-
-    <div class="buttons">
-      <a href="Aura.html" class="btn btn-aura">Aura</a>
-      <a href="Tempesta.html" class="btn btn-tempesta">Tempesta</a>
-      <a href="Ignis.html" class="btn btn-ignis">Ignis</a>
-      <a href="Mare.html" class="btn btn-mare">Mare</a>
-      <a href="Astro.html" class="btn btn-astro">Astro</a>
+  <div id="app">
+    <div class="container">
+      <h1 class="title">Orbis</h1>
+      <div class="buttons">
+        <a href="Aura.html" class="btn btn-aura">Aura</a>
+        <a href="Tempesta.html" class="btn btn-tempesta">Tempesta</a>
+        <a href="Ignis.html" class="btn btn-ignis">Ignis</a>
+        <a href="Mare.html" class="btn btn-mare">Mare</a>
+        <a href="Astro.html" class="btn btn-astro">Astro</a>
+      </div>
+      <p class="subtitle">Chose your orbis</p>
     </div>
-
-    <p class="subtitle">Chose your orbis</p>
   </div>
 
   <button class="exit-btn" id="exitBtn" title="Esci">&#10005;</button>
 
+  <!-- Fullscreen prompt -->
+  <div id="fsPrompt">
+    <h2>Orbis</h2>
+    <button id="fsBtn">Enter</button>
+  </div>
+
   <script>
-    // Force fullscreen on load and on any user interaction
-    function goFullscreen() {
+    const fsPrompt = document.getElementById('fsPrompt');
+    const fsBtn = document.getElementById('fsBtn');
+
+    function enterFullscreen() {
       const el = document.documentElement;
+      let promise = null;
       if (el.requestFullscreen) {
-        el.requestFullscreen().catch(() => {});
+        promise = el.requestFullscreen();
       } else if (el.webkitRequestFullscreen) {
-        el.webkitRequestFullscreen();
+        promise = el.webkitRequestFullscreen();
       } else if (el.msRequestFullscreen) {
-        el.msRequestFullscreen();
+        promise = el.msRequestFullscreen();
+      }
+      if (promise && promise.then) {
+        promise.then(() => {
+          fsPrompt.classList.add('hidden');
+        }).catch(() => {
+          fsPrompt.classList.add('hidden');
+          window.scrollTo(0, 1);
+        });
+      } else {
+        fsPrompt.classList.add('hidden');
+        window.scrollTo(0, 1);
       }
     }
 
-    // Try fullscreen immediately
-    goFullscreen();
+    fsBtn.addEventListener('click', enterFullscreen);
+    fsBtn.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      enterFullscreen();
+    });
 
-    // Also try on first touch/click (browsers often require user gesture)
-    function tryFullscreen() {
-      goFullscreen();
-      document.removeEventListener('click', tryFullscreen);
-      document.removeEventListener('touchstart', tryFullscreen);
+    function checkFullscreen() {
+      if (document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement) {
+        fsPrompt.classList.add('hidden');
+      }
     }
-    document.addEventListener('click', tryFullscreen);
-    document.addEventListener('touchstart', tryFullscreen);
+    document.addEventListener('fullscreenchange', checkFullscreen);
+    document.addEventListener('webkitfullscreenchange', checkFullscreen);
+
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        window.scrollTo(0, 1);
+      }, 100);
+    });
 
     // Prevent screen sleep
     function preventSleep() {
@@ -258,6 +341,11 @@
     document.getElementById('exitBtn').addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitFullscreenElement) {
+        document.webkitExitFullscreen();
+      }
       if (window.history.length > 1) {
         window.history.back();
       } else {
@@ -267,6 +355,11 @@
     document.getElementById('exitBtn').addEventListener('touchend', function(e) {
       e.preventDefault();
       e.stopPropagation();
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitFullscreenElement) {
+        document.webkitExitFullscreen();
+      }
       if (window.history.length > 1) {
         window.history.back();
       } else {
