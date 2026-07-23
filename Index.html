@@ -2,7 +2,10 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Orbis - Scegli la tua animazione</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,7 +16,9 @@
     justify-content: center;
     align-items: center;
     height: 100vh;
+    height: 100dvh;
     width: 100vw;
+    width: 100dvw;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   }
 
@@ -21,7 +26,8 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 18px;
+    gap: 16px;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
   .title {
@@ -30,25 +36,25 @@
     font-weight: 300;
     letter-spacing: 8px;
     text-transform: uppercase;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     text-shadow: 0 0 20px rgba(255,255,255,0.3);
   }
 
   .buttons {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
     width: 280px;
   }
 
   .btn {
     display: block;
-    padding: 16px 40px;
+    padding: 14px 40px;
     border: 2px solid rgba(255,255,255,0.2);
     border-radius: 50px;
     background: rgba(255,255,255,0.05);
     color: #fff;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 400;
     letter-spacing: 3px;
     text-transform: uppercase;
@@ -57,13 +63,14 @@
     cursor: pointer;
     transition: all 0.4s ease;
     backdrop-filter: blur(10px);
+    -webkit-tap-highlight-color: transparent;
   }
 
   .btn-aura {
     border-color: rgba(255, 100, 200, 0.3);
     box-shadow: 0 0 30px rgba(255, 100, 200, 0.1);
   }
-  .btn-aura:hover {
+  .btn-aura:active {
     background: rgba(255, 100, 200, 0.15);
     border-color: rgba(255, 100, 200, 0.6);
     box-shadow: 0 0 40px rgba(255, 100, 200, 0.3);
@@ -74,7 +81,7 @@
     border-color: rgba(100, 180, 255, 0.3);
     box-shadow: 0 0 30px rgba(100, 180, 255, 0.1);
   }
-  .btn-tempesta:hover {
+  .btn-tempesta:active {
     background: rgba(100, 180, 255, 0.15);
     border-color: rgba(100, 180, 255, 0.6);
     box-shadow: 0 0 40px rgba(100, 180, 255, 0.3);
@@ -85,7 +92,7 @@
     border-color: rgba(255, 120, 30, 0.3);
     box-shadow: 0 0 30px rgba(255, 120, 30, 0.1);
   }
-  .btn-ignis:hover {
+  .btn-ignis:active {
     background: rgba(255, 120, 30, 0.15);
     border-color: rgba(255, 120, 30, 0.6);
     box-shadow: 0 0 40px rgba(255, 120, 30, 0.3);
@@ -96,7 +103,7 @@
     border-color: rgba(0, 200, 220, 0.3);
     box-shadow: 0 0 30px rgba(0, 200, 220, 0.1);
   }
-  .btn-mare:hover {
+  .btn-mare:active {
     background: rgba(0, 200, 220, 0.15);
     border-color: rgba(0, 200, 220, 0.6);
     box-shadow: 0 0 40px rgba(0, 200, 220, 0.3);
@@ -107,7 +114,7 @@
     border-color: rgba(140, 100, 220, 0.3);
     box-shadow: 0 0 30px rgba(140, 100, 220, 0.1);
   }
-  .btn-astro:hover {
+  .btn-astro:active {
     background: rgba(140, 100, 220, 0.15);
     border-color: rgba(140, 100, 220, 0.6);
     box-shadow: 0 0 40px rgba(140, 100, 220, 0.3);
@@ -116,9 +123,9 @@
 
   .subtitle {
     color: rgba(255,255,255,0.4);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     letter-spacing: 2px;
-    margin-top: 5px;
+    margin-top: 4px;
   }
 
   .bg-glow {
@@ -143,8 +150,8 @@
   /* Exit button */
   .exit-btn {
     position: fixed;
-    bottom: 20px;
-    right: 20px;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    right: max(20px, env(safe-area-inset-right));
     width: 44px;
     height: 44px;
     border-radius: 50%;
@@ -159,10 +166,12 @@
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     z-index: 100;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-  .exit-btn:hover {
-    background: rgba(255,80,80,0.2);
-    border-color: rgba(255,80,80,0.5);
+  .exit-btn:active {
+    background: rgba(255,80,80,0.3);
+    border-color: rgba(255,80,80,0.6);
     color: #fff;
     transform: scale(1.1);
   }
@@ -187,7 +196,7 @@
     <p class="subtitle">Chose your orbis</p>
   </div>
 
-  <button class="exit-btn" onclick="exitApp()" title="Esci">✕</button>
+  <button class="exit-btn" id="exitBtn" title="Esci">&#10005;</button>
 
   <script>
     // Prevent screen sleep / standby
@@ -200,18 +209,15 @@
             wakeLock.addEventListener('release', () => {
               requestWakeLock();
             });
-          } catch (err) {
-            // Fallback: keep screen active via video trick
-          }
+          } catch (err) {}
         };
         requestWakeLock();
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible') requestWakeLock();
         });
       }
-      // Fallback: hidden video loop to keep screen awake on older devices
       const video = document.createElement('video');
-      video.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC'; // tiny blank video
+      video.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC';
       video.loop = true;
       video.muted = true;
       video.playsInline = true;
@@ -225,19 +231,26 @@
     }
     preventSleep();
 
-    // Exit app button
-    function exitApp() {
-      if (navigator.app && navigator.app.exitApp) {
-        navigator.app.exitApp();
-      } else if (window.close) {
-        window.close();
+    // Exit button - works on mobile browsers
+    document.getElementById('exitBtn').addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Multiple exit strategies
+      if (window.history.length > 1) {
+        window.history.back();
       } else {
-        // For PWA / web app: redirect to blank or show confirmation
-        if (confirm('Chiudere Orbis?')) {
-          window.location.href = 'about:blank';
-        }
+        window.location.href = 'about:blank';
       }
-    }
+    });
+    document.getElementById('exitBtn').addEventListener('touchend', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = 'about:blank';
+      }
+    });
   </script>
 </body>
 </html>
