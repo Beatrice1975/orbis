@@ -6,7 +6,7 @@
 <title>Orbis - Scegli la tua animazione</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
+  html, body {
     background: #000;
     overflow: hidden;
     display: flex;
@@ -139,7 +139,35 @@
     0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
     50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.1); }
   }
+
+  /* Exit button */
+  .exit-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.5);
+    font-size: 1.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    z-index: 100;
+  }
+  .exit-btn:hover {
+    background: rgba(255,80,80,0.2);
+    border-color: rgba(255,80,80,0.5);
+    color: #fff;
+    transform: scale(1.1);
+  }
 </style>
+<base target="_blank">
 <base target="_blank">
 </head>
 <body>
@@ -158,5 +186,58 @@
 
     <p class="subtitle">Chose your orbis</p>
   </div>
+
+  <button class="exit-btn" onclick="exitApp()" title="Esci">✕</button>
+
+  <script>
+    // Prevent screen sleep / standby
+    function preventSleep() {
+      if ('wakeLock' in navigator) {
+        let wakeLock = null;
+        const requestWakeLock = async () => {
+          try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+              requestWakeLock();
+            });
+          } catch (err) {
+            // Fallback: keep screen active via video trick
+          }
+        };
+        requestWakeLock();
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') requestWakeLock();
+        });
+      }
+      // Fallback: hidden video loop to keep screen awake on older devices
+      const video = document.createElement('video');
+      video.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC'; // tiny blank video
+      video.loop = true;
+      video.muted = true;
+      video.playsInline = true;
+      video.style.position = 'fixed';
+      video.style.width = '1px';
+      video.style.height = '1px';
+      video.style.opacity = '0';
+      video.style.pointerEvents = 'none';
+      document.body.appendChild(video);
+      video.play().catch(() => {});
+    }
+    preventSleep();
+
+    // Exit app button
+    function exitApp() {
+      if (navigator.app && navigator.app.exitApp) {
+        navigator.app.exitApp();
+      } else if (window.close) {
+        window.close();
+      } else {
+        // For PWA / web app: redirect to blank or show confirmation
+        if (confirm('Chiudere Orbis?')) {
+          window.location.href = 'about:blank';
+        }
+      }
+    }
+  </script>
 </body>
 </html>
