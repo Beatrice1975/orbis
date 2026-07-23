@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Orbis - Scegli la tua animazione</title>
+<title>Orbis</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -147,7 +147,6 @@
     50% { opacity: 0.6; transform: translate(-50%, -50%) scale(1.1); }
   }
 
-  /* Exit button */
   .exit-btn {
     position: fixed;
     bottom: max(20px, env(safe-area-inset-bottom));
@@ -199,7 +198,31 @@
   <button class="exit-btn" id="exitBtn" title="Esci">&#10005;</button>
 
   <script>
-    // Prevent screen sleep / standby
+    // Force fullscreen on load and on any user interaction
+    function goFullscreen() {
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {});
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+      }
+    }
+
+    // Try fullscreen immediately
+    goFullscreen();
+
+    // Also try on first touch/click (browsers often require user gesture)
+    function tryFullscreen() {
+      goFullscreen();
+      document.removeEventListener('click', tryFullscreen);
+      document.removeEventListener('touchstart', tryFullscreen);
+    }
+    document.addEventListener('click', tryFullscreen);
+    document.addEventListener('touchstart', tryFullscreen);
+
+    // Prevent screen sleep
     function preventSleep() {
       if ('wakeLock' in navigator) {
         let wakeLock = null;
@@ -231,11 +254,10 @@
     }
     preventSleep();
 
-    // Exit button - works on mobile browsers
+    // Exit button
     document.getElementById('exitBtn').addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      // Multiple exit strategies
       if (window.history.length > 1) {
         window.history.back();
       } else {
