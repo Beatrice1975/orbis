@@ -95,7 +95,7 @@
   for (let arm = 0; arm < spiralArms; arm++) {
     for (let i = 0; i < spiralPoints; i++) {
       const t2 = i / spiralPoints;
-      const angle = arm * (Math.PI * 2 / spiralArms) + t2 * Math.PI * 4;
+      const angle = arm * (Math.PI * 2 / spiralArms) + t2 * Math.PI * 2.5;
       const r = t2 * 0.95;
       const pulseCycles = 1 + Math.floor(Math.random() * 3);
       spirals.push({ arm: arm, t: t2, baseAngle: angle, baseR: r, size: 2.5 + (1 - t2) * 6, brightness: 0.2 + (1 - t2) * 0.6, pulseCycles: pulseCycles, pulsePhase: Math.random() * Math.PI * 2 });
@@ -196,7 +196,7 @@
       ctx.beginPath();
       for (let i = 0; i <= spiralPoints; i++) {
         const t2 = i / spiralPoints;
-        const angle = arm * (Math.PI * 2 / spiralArms) + t2 * Math.PI * 4 + rotation;
+        const angle = arm * (Math.PI * 2 / spiralArms) + t2 * Math.PI * 2.5 + rotation;
         const r = t2 * 0.95 * R;
         const x = cx + Math.cos(angle) * r;
         const y = cy + Math.sin(angle) * r;
