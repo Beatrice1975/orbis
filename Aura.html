@@ -2,7 +2,10 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Orbis - Aura</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11,14 +14,16 @@
     overflow: hidden;
     width: 100vw;
     height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    height: 100dvh;
   }
   canvas {
     display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
   }
 </style>
+<base target="_blank">
 <base target="_blank">
 </head>
 <body>
@@ -233,5 +238,29 @@
       overlay.addEventListener('touchstart', hideOverlay);
     })();
   </script>
+
+
+  // ===== NO STANDBY =====
+  (function() {
+    if ('wakeLock' in navigator) {
+      let wakeLock = null;
+      const requestWakeLock = async () => {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+          wakeLock.addEventListener('release', () => { requestWakeLock(); });
+        } catch (err) {}
+      };
+      requestWakeLock();
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') requestWakeLock();
+      });
+    }
+    const video = document.createElement('video');
+    video.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACKBtZGF0AAAC';
+    video.loop = true; video.muted = true; video.playsInline = true;
+    video.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;';
+    document.body.appendChild(video);
+    video.play().catch(() => {});
+  })();
 </body>
 </html>
